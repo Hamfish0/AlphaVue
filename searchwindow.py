@@ -65,10 +65,12 @@ class searchWindow(object):
         self.tickerLineEdit.setGeometry(QtCore.QRect(20, 20, 221, 91))
         font = QtGui.QFont()
         font.setPointSize(50)
+
         self.tickerLineEdit.setFont(font)
         self.tickerLineEdit.setText("")
         self.tickerLineEdit.setAlignment(QtCore.Qt.AlignCenter)
         self.tickerLineEdit.setObjectName("tickerLineEdit")
+
         self.label_4 = QtWidgets.QLabel(self.groupBox)
         self.label_4.setGeometry(QtCore.QRect(30, 120, 201, 41))
         font = QtGui.QFont()

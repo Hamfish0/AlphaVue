@@ -10,14 +10,15 @@ version = "1.0"
 
 # Import packages for application to work.
 import pyEX as p
+from pyEX import stocks
 import pandas as pd
-import time
+import requests
 import threading
 import sys
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import QtCore as qtc
 from PyQt5 import QtGui as qtg
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QMessageBox
 
 # Import custom classes from individual application widgets.
@@ -25,16 +26,60 @@ from analysiswindow import analysisWindow
 from searchwindow import searchWindow
 from loading import loadingWindow
 
-
 # API Key goes here for IEXcloud
-APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a"
+#APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a" # SandBox API Key
+APIkey = "sk_98a1c3f813e44a57af12019f67aa9351"
 class MainWindow(qtw.QWidget):
 
     def on_searchBTNclick(self):
-        print("Button clicked!")
+        # When the search button is clicked, retreive data from labelEdit from API
+        c = p.Client(APIkey)
+        tickercode = self.search.tickerLineEdit.text()
+
+        try:
+            income_data = c.stocks.incomeStatement(tickercode)[0]
+            balance_data = c.stocks.balanceSheet(tickercode)[0]
+            company_data = c.company(tickercode) # Throws errors if you have the [0] as this for some reason already filters it out 
+            print(income_data)
+            print(balance_data)
+            print(company_data)
+
+            #print(c.logo(tickercode)["url"])
+
+            # Insert company logo
+            cLogo_url = c.logo(tickercode)
+            cLogo = QImage()
+            cLogo.loadFromData(requests.get(cLogo_url["url"]).content)
+
+            self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
+
+
+
+
+            # Change labels of general information group type
+            self.analysis.descriptionText.setText(company_data["description"])
+            self.analysis.nameLabel.setText(company_data["companyName"])
+            self.analysis.countryLabel.setText(company_data["country"])
+            self.analysis.currencyLabel.setText(balance_data["currency"])
+            self.analysis.industryLabel.setText(company_data["industry"])
+            self.analysis.ceoLabel.setText(company_data["CEO"])
+            self.analysis.employeesLabel.setText(str(company_data["employees"]))
+
+                        # Show analysis window
+            self.analysisQTwindow.show()
+
+        except:
+            # Bring up dialouge box to display error.
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Error")
+            dlg.setText("Error\n\nThere is either no Internet connection or you have entered an invalid ticker code, please fix and try again.")
+            dlg.setStandardButtons(QMessageBox.Ok)
+            dlg.setIcon(QMessageBox.Warning)
+            button = dlg.exec() 
+
+
 
     def on_helpBTNclick(self, s):
-
         # Makes a message box describing how to use the application and its purpose.
         dlg = QMessageBox(self)
         dlg.setWindowTitle("AlphaVue Help")
