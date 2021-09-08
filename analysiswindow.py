@@ -676,7 +676,7 @@ class analysisWindow(object):
         self.stockChartLabel.setText("")
         self.stockChartLabel.setObjectName("stockChartLabel")
         self.imageLabel = QtWidgets.QLabel(Form)
-        self.imageLabel.setGeometry(QtCore.QRect(1380, 550, 261, 251))
+        self.imageLabel.setGeometry(QtCore.QRect(1380, 550, 255, 255)) #change from 255
         self.imageLabel.setText("")
         self.imageLabel.setObjectName("imageLabel")
 
