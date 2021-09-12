@@ -17,12 +17,15 @@ import pandas as pd
 import requests
 import threading
 import sys
+import math
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import QtCore as qtc
 from PyQt5 import QtGui as qtg
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWebEngineWidgets import *
+import re
+from decimal import Decimal
 
 
 # Import custom classes from individual application widgets.
@@ -34,19 +37,47 @@ from loading import loadingWindow
 # APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a" # SandBox API Key
 APIkey = "sk_98a1c3f813e44a57af12019f67aa9351"
 
+""" 
+function millify from https://github.com/azaitsev/millify
+
+MIT License
+
+Copyright (c) 2018 Alex Zaitsev
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions: """
+
+def millify(n, precision=0, drop_nulls=True, prefixes=[]):
+    """Humanize number."""
+    millnames = ['', 'k', 'M', 'B', 'T', 'P', 'E', 'Z', 'Y']
+    if prefixes:
+        millnames = ['']
+        millnames.extend(prefixes)
+    n = float(n)
+    millidx = max(0, min(len(millnames) - 1,
+                         int(math.floor(0 if n == 0 else math.log10(abs(n)) / 3))))
+    result = '{:.{precision}f}'.format(n / 10**(3 * millidx), precision=precision)
+    return '{0}{dx}'.format(result, dx=millnames[millidx])
+
+
 
 class MainWindow(qtw.QWidget):
 
     def on_searchBTNclick(self):
-        # When the search button is clicked, retreive data from labelEdit from API
+        # When the search button is clicked, retrieve data from labelEdit from API
         c = p.Client(APIkey)
         tickercode = self.search.tickerLineEdit.text().upper()
 
         try:
             income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2)
             income_data_cy = income_data[0]
+            print(income_data_cy)
             income_data_py = income_data[1]
-            balance_data = c.stocks.balanceSheet(tickercode)[0]
+            balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0]
             company_data = c.company(tickercode)
             # Throws errors if you have the [0] as this for some reason already filters it out
 
@@ -73,41 +104,41 @@ class MainWindow(qtw.QWidget):
             self.analysis.pyLabel.setText(str(income_data_py["fiscalYear"]))
 
             # Current Year
-            self.analysis.cyRevenueLabel.setText(str(income_data_cy["totalRevenue"]))
-            self.analysis.cyCostOfRevenueLabel.setText(str(income_data_cy["costOfRevenue"]))
-            self.analysis.cyGrossProfitLabel.setText(str(income_data_cy["grossProfit"]))
-            self.analysis.cyInterestIncomeLabel.setText(str(income_data_cy["interestIncome"]))
+            self.analysis.cyRevenueLabel.setText(millify(income_data_cy["totalRevenue"], precision=3))
+            self.analysis.cyCostOfRevenueLabel.setText(millify(income_data_cy["costOfRevenue"],precision=3))
+            self.analysis.cyGrossProfitLabel.setText(millify(income_data_cy["grossProfit"], precision=3))
+            self.analysis.cyInterestIncomeLabel.setText(millify(income_data_cy["interestIncome"],precision=3))
             self.analysis.cySubtotalLabel.setText(
-                str((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"])))
-            self.analysis.cySgaLabel.setText(str(income_data_cy["sellingGeneralAndAdmin"]))
-            self.analysis.cyRdLabel.setText(str(income_data_cy["researchAndDevelopment"]))
-            self.analysis.cyTotalExpLabel.setText(str(income_data_cy["operatingExpense"]))
-            self.analysis.cyNetProfitLabel.setText(str(income_data_cy["pretaxIncome"]))
-            self.analysis.cyProfitTaxLabel.setText(str(income_data_cy["netIncome"]))
+                millify((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"]), precision=3))
+            self.analysis.cySgaLabel.setText(millify(income_data_cy["sellingGeneralAndAdmin"], precision=3))
+            self.analysis.cyRdLabel.setText(millify(income_data_cy["researchAndDevelopment"], precision=3))
+            self.analysis.cyTotalExpLabel.setText(millify(income_data_cy["researchAndDevelopment"] + income_data_cy["sellingGeneralAndAdmin"], precision=3))
+            self.analysis.cyNetProfitLabel.setText(millify(income_data_cy["pretaxIncome"], precision=3))
+            self.analysis.cyProfitTaxLabel.setText(millify(income_data_cy["netIncome"], precision=3))
 
             # Past Year
-            self.analysis.pyRevenueLabel.setText(str(income_data_py["totalRevenue"]))
-            self.analysis.pyCostOfRevenueLabel.setText(str(income_data_py["costOfRevenue"]))
-            self.analysis.pyGrossProfitLabel.setText(str(income_data_py["grossProfit"]))
-            self.analysis.pyInterestIncomeLabel.setText(str(income_data_py["interestIncome"]))
+            self.analysis.pyRevenueLabel.setText(millify(income_data_py["totalRevenue"], precision=3))
+            self.analysis.pyCostOfRevenueLabel.setText(millify(income_data_py["costOfRevenue"], precision=3))
+            self.analysis.pyGrossProfitLabel.setText(millify(income_data_py["grossProfit"], precision=3))
+            self.analysis.pyInterestIncomeLabel.setText(millify(income_data_py["interestIncome"], precision=3))
             self.analysis.pySubtotalLabel.setText(
-                str((income_data_py["grossProfit"]) + (income_data_cy["interestIncome"])))
-            self.analysis.pySgaLabel.setText(str(income_data_py["sellingGeneralAndAdmin"]))
-            self.analysis.pyRdLabel.setText(str(income_data_py["researchAndDevelopment"]))
-            self.analysis.pyTotalExpLabel.setText(str(income_data_py["operatingExpense"]))
-            self.analysis.pyNetProfitLabel.setText(str(income_data_py["pretaxIncome"]))
-            self.analysis.pyProfitTaxLabel.setText(str(income_data_py["netIncome"]))
+                millify((income_data_py["grossProfit"] + income_data_cy["interestIncome"]), precision=3))
+            self.analysis.pySgaLabel.setText(millify(income_data_py["sellingGeneralAndAdmin"], precision=3))
+            self.analysis.pyRdLabel.setText(millify(income_data_py["researchAndDevelopment"], precision=3))
+            self.analysis.pyTotalExpLabel.setText(millify(income_data_py["researchAndDevelopment"] + income_data_py["sellingGeneralAndAdmin"], precision=3))
+            self.analysis.pyNetProfitLabel.setText(millify(income_data_py["pretaxIncome"], precision=3))
+            self.analysis.pyProfitTaxLabel.setText(millify(income_data_py["netIncome"], precision=3))
 
             # Change labels of balance sheet type
             self.analysis.label_25.setText(str(balance_data["fiscalYear"]))
-            self.analysis.caLabel.setText(str(balance_data["currentAssets"]))
-            self.analysis.ncLabel.setText(str(balance_data["totalAssets"] - balance_data["currentAssets"]))
-            self.analysis.taLabel.setText(str(balance_data["totalAssets"]))
-            self.analysis.clLabel.setText(str(balance_data["totalCurrentLiabilities"]))
+            self.analysis.caLabel.setText(millify(balance_data["currentAssets"], precision=3))
+            self.analysis.ncLabel.setText(millify(balance_data["totalAssets"] - balance_data["currentAssets"], precision=3))
+            self.analysis.taLabel.setText(millify(balance_data["totalAssets"], precision=3))
+            self.analysis.clLabel.setText(millify(balance_data["totalCurrentLiabilities"], precision=3))
             self.analysis.nclLabel.setText(
-                str(balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]))
-            self.analysis.tlLabel.setText(str(balance_data["totalLiabilities"]))
-            self.analysis.oeLabel.setText(str(balance_data["shareholderEquity"]))
+                millify((balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]), precision=3))
+            self.analysis.tlLabel.setText(millify(balance_data["totalLiabilities"], precision=3))
+            self.analysis.oeLabel.setText(millify(balance_data["shareholderEquity"], precision=3))
 
             # Set the exchange setting for TradingView to get chart data from.
             if company_data["exchange"] == "NASDAQ":
