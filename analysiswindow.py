@@ -9,10 +9,15 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QRect
+from PyQt5.QtWebEngineWidgets import *
+from PyQt5.QtWidgets import QWidget
 
 
 class analysisWindow(object):
     def setupUi(self, Form):
+
+
         Form.setObjectName("Form")
         Form.resize(1700, 854)
         Form.setMinimumSize(QtCore.QSize(1700, 800))
@@ -679,6 +684,12 @@ class analysisWindow(object):
         self.imageLabel.setGeometry(QtCore.QRect(1380, 550, 255, 255)) #change from 255
         self.imageLabel.setText("")
         self.imageLabel.setObjectName("imageLabel")
+
+        self.webwidget = QWebEngineView(self.chartgrroup)
+        self.webwidget.setObjectName(u"webwidget")
+        self.webwidget.setGeometry(QRect(10, 20, 541, 571))
+
+
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)

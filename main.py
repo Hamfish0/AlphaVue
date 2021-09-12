@@ -1,6 +1,8 @@
 #
 # =========================================
 # AlphaVue
+from PyQt5.QtCore import QUrl
+
 version = "1.0"
 # US stock analysis program
 # -----------------------------------------
@@ -20,6 +22,8 @@ from PyQt5 import QtCore as qtc
 from PyQt5 import QtGui as qtg
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWebEngineWidgets import *
+
 
 # Import custom classes from individual application widgets.
 from analysiswindow import analysisWindow
@@ -27,22 +31,24 @@ from searchwindow import searchWindow
 from loading import loadingWindow
 
 # API Key goes here for IEXcloud
-#APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a" # SandBox API Key
+# APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a" # SandBox API Key
 APIkey = "sk_98a1c3f813e44a57af12019f67aa9351"
+
 
 class MainWindow(qtw.QWidget):
 
     def on_searchBTNclick(self):
         # When the search button is clicked, retreive data from labelEdit from API
         c = p.Client(APIkey)
-        tickercode = self.search.tickerLineEdit.text()
+        tickercode = self.search.tickerLineEdit.text().upper()
 
         try:
-            income_data = c.stocks.incomeStatement(tickercode,period="annual",last=2)
+            income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2)
             income_data_cy = income_data[0]
             income_data_py = income_data[1]
             balance_data = c.stocks.balanceSheet(tickercode)[0]
-            company_data = c.company(tickercode) # Throws errors if you have the [0] as this for some reason already filters it out 
+            company_data = c.company(tickercode)
+            # Throws errors if you have the [0] as this for some reason already filters it out
 
             # Insert company logo
             cLogo_url = c.logo(tickercode)
@@ -50,7 +56,6 @@ class MainWindow(qtw.QWidget):
             cLogo.loadFromData(requests.get(cLogo_url["url"]).content)
             self.analysis.imageLabel.setScaledContents(True)
             self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
-
 
             # Change labels of general information group type
             self.analysis.tickercodeLabel.setText(tickercode)
@@ -72,7 +77,8 @@ class MainWindow(qtw.QWidget):
             self.analysis.cyCostOfRevenueLabel.setText(str(income_data_cy["costOfRevenue"]))
             self.analysis.cyGrossProfitLabel.setText(str(income_data_cy["grossProfit"]))
             self.analysis.cyInterestIncomeLabel.setText(str(income_data_cy["interestIncome"]))
-            self.analysis.cySubtotalLabel.setText(str((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"])))
+            self.analysis.cySubtotalLabel.setText(
+                str((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"])))
             self.analysis.cySgaLabel.setText(str(income_data_cy["sellingGeneralAndAdmin"]))
             self.analysis.cyRdLabel.setText(str(income_data_cy["researchAndDevelopment"]))
             self.analysis.cyTotalExpLabel.setText(str(income_data_cy["operatingExpense"]))
@@ -84,7 +90,8 @@ class MainWindow(qtw.QWidget):
             self.analysis.pyCostOfRevenueLabel.setText(str(income_data_py["costOfRevenue"]))
             self.analysis.pyGrossProfitLabel.setText(str(income_data_py["grossProfit"]))
             self.analysis.pyInterestIncomeLabel.setText(str(income_data_py["interestIncome"]))
-            self.analysis.pySubtotalLabel.setText(str((income_data_py["grossProfit"]) + (income_data_cy["interestIncome"])))
+            self.analysis.pySubtotalLabel.setText(
+                str((income_data_py["grossProfit"]) + (income_data_cy["interestIncome"])))
             self.analysis.pySgaLabel.setText(str(income_data_py["sellingGeneralAndAdmin"]))
             self.analysis.pyRdLabel.setText(str(income_data_py["researchAndDevelopment"]))
             self.analysis.pyTotalExpLabel.setText(str(income_data_py["operatingExpense"]))
@@ -97,25 +104,31 @@ class MainWindow(qtw.QWidget):
             self.analysis.ncLabel.setText(str(balance_data["totalAssets"] - balance_data["currentAssets"]))
             self.analysis.taLabel.setText(str(balance_data["totalAssets"]))
             self.analysis.clLabel.setText(str(balance_data["totalCurrentLiabilities"]))
-            self.analysis.nclLabel.setText(str(balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]))
+            self.analysis.nclLabel.setText(
+                str(balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]))
             self.analysis.tlLabel.setText(str(balance_data["totalLiabilities"]))
             self.analysis.oeLabel.setText(str(balance_data["shareholderEquity"]))
+
+            # Set the exchange setting for TradingView to get chart data from.
+            if company_data["exchange"] == "NASDAQ":
+                chartExchange = "NASDAQ"
+            else:
+                chartExchange = "NYSE"
 
             # Show the HTML5 stock chart
             chart = """ <!-- TradingView Widget BEGIN -->
 <div class="tradingview-widget-container">
   <div id="tradingview_b8937"></div>
-  <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/NASDAQ-AAPL/" rel="noopener" target="_blank"><span class="blue-text">AAPL Chart</span></a> by TradingView</div>
   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
   <script type="text/javascript">
   new TradingView.widget(
   {
   "autosize": true,
-  "symbol": "NASDAQ:AAPL",
+  "symbol": "%s:%s",
   "interval": "D",
   "timezone": "Etc/UTC",
   "theme": "light",
-  "style": "2",
+  "style": "3",
   "locale": "en",
   "toolbar_bg": "#f1f3f6",
   "enable_publishing": false,
@@ -127,9 +140,9 @@ class MainWindow(qtw.QWidget):
   );
   </script>
 </div>
-<!-- TradingView Widget END --> """
+<!-- TradingView Widget END --> """ % (chartExchange, tickercode) # Put exchange and tickercode into html script to change the chart
 
-            self.analysis.stockChartLabel.setText(chart) 
+            self.analysis.webwidget.setHtml(chart)
 
             # Show analysis window
             self.analysisQTwindow.show()
@@ -138,57 +151,55 @@ class MainWindow(qtw.QWidget):
             # Bring up dialouge box to display error.
             dlg = QMessageBox(self)
             dlg.setWindowTitle("Error")
-            dlg.setText("Error\n\nThere is either no Internet connection or you have entered an invalid ticker code, please fix and try again.")
+            dlg.setText(
+                "Error\n\nThere is either no Internet connection or you have entered an invalid ticker code, please fix and try again.")
             dlg.setStandardButtons(QMessageBox.Ok)
             dlg.setIcon(QMessageBox.Warning)
-            button = dlg.exec() 
-
-
+            button = dlg.exec()
 
     def on_helpBTNclick(self, s):
         # Makes a message box describing how to use the application and its purpose.
         dlg = QMessageBox(self)
         dlg.setWindowTitle("AlphaVue Help")
-        dlg.setText("AlphaVue Version " + version + " -- Computer Science Major Project 2021\n\nThis is a stock market analysis tool that can be used for only US stocks using the IEXcloud API. Enter a company's ticker code and press the search button to view the fundamental data of it, try TSLA or MSFT for example.")
+        dlg.setText(
+            "AlphaVue Version " + version + " -- Computer Science Major Project 2021\n\nThis is a stock market analysis tool that can be used for only US stocks using the IEXcloud API. Enter a company's ticker code and press the search button to view the fundamental data of it, try TSLA or MSFT for example.")
         dlg.setStandardButtons(QMessageBox.Ok)
         dlg.setIcon(QMessageBox.Information)
-        button = dlg.exec() 
+        button = dlg.exec()
 
     def on_helpBTNpressAnalysis(self):
         # Makes a message box describing analysis window
         dlg = QMessageBox(self)
         dlg.setWindowTitle("AlphaVue Help")
-        dlg.setText("AlphaVue Version " + version + " -- Computer Science Major Project 2021\n\nThis is the analysis window. This is where you can view all the financial statistics of the company and general information.")
+        dlg.setText(
+            "AlphaVue Version " + version + " -- Computer Science Major Project 2021\n\nThis is the analysis window. This is where you can view all the financial statistics of the company and general information.")
         dlg.setStandardButtons(QMessageBox.Ok)
         dlg.setIcon(QMessageBox.Information)
-        button = dlg.exec() 
-
+        button = dlg.exec()
 
     def on_exitBTNclickAnalysis(self):
         # closes analysis window
         self.analysisQTwindow.close()
-
 
     def on_exitBTNclick(self):
         # Bit obvious what this does
         self.searchQTwindow.close()
         sys.exit()
 
-
     def loadingFunc(self):
-            # Logic to check whether there is an internet connection / it can connect to IEXcloud API
-            passs = False
-            c = p.Client(APIkey)
+        # Logic to check whether there is an internet connection / it can connect to IEXcloud API
+        passs = False
+        c = p.Client(APIkey)
 
-            try:
-               x = c.incomeStatement("AAPL")[0]
-               passs = True
-            except:
-                print("Error no internet or API unavailable.")
+        try:
+            x = c.incomeStatement("AAPL")[0]
+            passs = True
+        except:
+            print("Error no internet or API unavailable.")
 
-            if passs == True:
-                self.close()
-                self.searchQTwindow.show()
+        if passs == True:
+            self.close()
+            self.searchQTwindow.show()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
