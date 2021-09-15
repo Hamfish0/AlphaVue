@@ -3,7 +3,7 @@
 # AlphaVue
 from PyQt5.QtCore import QUrl
 
-version = "1.0"
+version = "2.0"
 # US stock analysis program
 # -----------------------------------------
 # Hamish Anderson | Computer Science 2021
@@ -12,20 +12,13 @@ version = "1.0"
 
 # Import packages for application to work.
 import pyEX as p
-from pyEX import stocks
-import pandas as pd
 import requests
-import threading
 import sys
 import math
 from PyQt5 import QtWidgets as qtw
 from PyQt5 import QtCore as qtc
-from PyQt5 import QtGui as qtg
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWebEngineWidgets import *
-import re
-from decimal import Decimal
 
 
 # Import custom classes from individual application widgets.
@@ -73,20 +66,33 @@ class MainWindow(qtw.QWidget):
         tickercode = self.search.tickerLineEdit.text().upper()
 
         try:
-            income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2)
-            income_data_cy = income_data[0]
-            print(income_data_cy)
-            income_data_py = income_data[1]
-            balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0]
-            company_data = c.company(tickercode)
+            try:
+                income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2)
+                income_data_cy = income_data[0]
+                income_data_py = income_data[1]
+            except:
+                print("error income")
+
+            try:
+                balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0]
+            except:
+                print("error bal")
+
+            try:
+                company_data = c.company(tickercode)
+            except:
+                print("error data")
             # Throws errors if you have the [0] as this for some reason already filters it out
 
             # Insert company logo
-            cLogo_url = c.logo(tickercode)
-            cLogo = QImage()
-            cLogo.loadFromData(requests.get(cLogo_url["url"]).content)
-            self.analysis.imageLabel.setScaledContents(True)
-            self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
+            try:
+                cLogo_url = c.logo(tickercode)
+                cLogo = QImage()
+                cLogo.loadFromData(requests.get(cLogo_url["url"]).content)
+                self.analysis.imageLabel.setScaledContents(True)
+                self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
+            except:
+                print("Error no logo")
 
             # Change labels of general information group type
             self.analysis.tickercodeLabel.setText(tickercode)
@@ -94,51 +100,60 @@ class MainWindow(qtw.QWidget):
             self.analysis.nameLabel.setText(company_data["companyName"])
             self.analysis.exchangeLabel.setText(company_data["exchange"])
             self.analysis.countryLabel.setText(company_data["country"])
-            self.analysis.currencyLabel.setText(balance_data["currency"])
+            self.analysis.currencyLabel.setText("USD")
             self.analysis.industryLabel.setText(company_data["industry"])
             self.analysis.ceoLabel.setText(company_data["CEO"])
             self.analysis.employeesLabel.setText(str(company_data["employees"]))
 
-            # Change labels of income statement type
-            self.analysis.cyLabel.setText(str(income_data_cy["fiscalYear"]))
-            self.analysis.pyLabel.setText(str(income_data_py["fiscalYear"]))
+            try:
+                # Change labels of income statement type
+                self.analysis.cyLabel.setText(str(income_data_cy["fiscalYear"]))
+                self.analysis.pyLabel.setText(str(income_data_py["fiscalYear"]))
 
-            # Current Year
-            self.analysis.cyRevenueLabel.setText(millify(income_data_cy["totalRevenue"], precision=3))
-            self.analysis.cyCostOfRevenueLabel.setText(millify(income_data_cy["costOfRevenue"],precision=3))
-            self.analysis.cyGrossProfitLabel.setText(millify(income_data_cy["grossProfit"], precision=3))
-            self.analysis.cyInterestIncomeLabel.setText(millify(income_data_cy["interestIncome"],precision=3))
-            self.analysis.cySubtotalLabel.setText(
-                millify((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"]), precision=3))
-            self.analysis.cySgaLabel.setText(millify(income_data_cy["sellingGeneralAndAdmin"], precision=3))
-            self.analysis.cyRdLabel.setText(millify(income_data_cy["researchAndDevelopment"], precision=3))
-            self.analysis.cyTotalExpLabel.setText(millify(income_data_cy["researchAndDevelopment"] + income_data_cy["sellingGeneralAndAdmin"], precision=3))
-            self.analysis.cyNetProfitLabel.setText(millify(income_data_cy["pretaxIncome"], precision=3))
-            self.analysis.cyProfitTaxLabel.setText(millify(income_data_cy["netIncome"], precision=3))
+                # Current Year
+                self.analysis.cyRevenueLabel.setText(millify(income_data_cy["totalRevenue"], precision=3))
+                self.analysis.cyCostOfRevenueLabel.setText(millify(income_data_cy["costOfRevenue"],precision=3))
+                self.analysis.cyGrossProfitLabel.setText(millify(income_data_cy["grossProfit"], precision=3))
+                self.analysis.cyInterestIncomeLabel.setText(millify(income_data_cy["interestIncome"],precision=3))
+                self.analysis.cySubtotalLabel.setText(
+                    millify((income_data_cy["grossProfit"]) + (income_data_cy["interestIncome"]), precision=3))
+                self.analysis.cySgaLabel.setText(millify(income_data_cy["sellingGeneralAndAdmin"], precision=3))
+                self.analysis.cyRdLabel.setText(millify(income_data_cy["researchAndDevelopment"], precision=3))
+                self.analysis.cyTotalExpLabel.setText(millify(income_data_cy["grossProfit"] + income_data_cy["interestIncome"] - income_data_cy["pretaxIncome"], precision=3))
+                self.analysis.cyNetProfitLabel.setText(millify(income_data_cy["pretaxIncome"], precision=3))
+                self.analysis.cyProfitTaxLabel.setText(millify(income_data_cy["netIncome"], precision=3))
+            except:
+                print("error no income data")
 
-            # Past Year
-            self.analysis.pyRevenueLabel.setText(millify(income_data_py["totalRevenue"], precision=3))
-            self.analysis.pyCostOfRevenueLabel.setText(millify(income_data_py["costOfRevenue"], precision=3))
-            self.analysis.pyGrossProfitLabel.setText(millify(income_data_py["grossProfit"], precision=3))
-            self.analysis.pyInterestIncomeLabel.setText(millify(income_data_py["interestIncome"], precision=3))
-            self.analysis.pySubtotalLabel.setText(
-                millify((income_data_py["grossProfit"] + income_data_cy["interestIncome"]), precision=3))
-            self.analysis.pySgaLabel.setText(millify(income_data_py["sellingGeneralAndAdmin"], precision=3))
-            self.analysis.pyRdLabel.setText(millify(income_data_py["researchAndDevelopment"], precision=3))
-            self.analysis.pyTotalExpLabel.setText(millify(income_data_py["researchAndDevelopment"] + income_data_py["sellingGeneralAndAdmin"], precision=3))
-            self.analysis.pyNetProfitLabel.setText(millify(income_data_py["pretaxIncome"], precision=3))
-            self.analysis.pyProfitTaxLabel.setText(millify(income_data_py["netIncome"], precision=3))
+            try:
+                # Past Year
+                self.analysis.pyRevenueLabel.setText(millify(income_data_py["totalRevenue"], precision=3))
+                self.analysis.pyCostOfRevenueLabel.setText(millify(income_data_py["costOfRevenue"], precision=3))
+                self.analysis.pyGrossProfitLabel.setText(millify(income_data_py["grossProfit"], precision=3))
+                self.analysis.pyInterestIncomeLabel.setText(millify(income_data_py["interestIncome"], precision=3))
+                self.analysis.pySubtotalLabel.setText(
+                    millify((income_data_py["grossProfit"] + income_data_cy["interestIncome"]), precision=3))
+                self.analysis.pySgaLabel.setText(millify(income_data_py["sellingGeneralAndAdmin"], precision=3))
+                self.analysis.pyRdLabel.setText(millify(income_data_py["researchAndDevelopment"], precision=3))
+                self.analysis.pyTotalExpLabel.setText(millify(income_data_py["grossProfit"] + income_data_py["interestIncome"] - income_data_py["pretaxIncome"], precision=3))
+                self.analysis.pyNetProfitLabel.setText(millify(income_data_py["pretaxIncome"], precision=3))
+                self.analysis.pyProfitTaxLabel.setText(millify(income_data_py["netIncome"], precision=3))
+            except:
+                print("error no income data past year")
 
-            # Change labels of balance sheet type
-            self.analysis.label_25.setText(str(balance_data["fiscalYear"]))
-            self.analysis.caLabel.setText(millify(balance_data["currentAssets"], precision=3))
-            self.analysis.ncLabel.setText(millify(balance_data["totalAssets"] - balance_data["currentAssets"], precision=3))
-            self.analysis.taLabel.setText(millify(balance_data["totalAssets"], precision=3))
-            self.analysis.clLabel.setText(millify(balance_data["totalCurrentLiabilities"], precision=3))
-            self.analysis.nclLabel.setText(
-                millify((balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]), precision=3))
-            self.analysis.tlLabel.setText(millify(balance_data["totalLiabilities"], precision=3))
-            self.analysis.oeLabel.setText(millify(balance_data["shareholderEquity"], precision=3))
+            try:
+                # Change labels of balance sheet type
+                self.analysis.label_25.setText(str(balance_data["fiscalYear"]))
+                self.analysis.caLabel.setText(millify(balance_data["currentAssets"], precision=3))
+                self.analysis.ncLabel.setText(millify(balance_data["totalAssets"] - balance_data["currentAssets"], precision=3))
+                self.analysis.taLabel.setText(millify(balance_data["totalAssets"], precision=3))
+                self.analysis.clLabel.setText(millify(balance_data["totalCurrentLiabilities"], precision=3))
+                self.analysis.nclLabel.setText(
+                    millify((balance_data["totalLiabilities"] - balance_data["totalCurrentLiabilities"]), precision=3))
+                self.analysis.tlLabel.setText(millify(balance_data["totalLiabilities"], precision=3))
+                self.analysis.oeLabel.setText(millify(balance_data["shareholderEquity"], precision=3))
+            except:
+                print("error no balance sheet data")
 
             # Set the exchange setting for TradingView to get chart data from.
             if company_data["exchange"] == "NASDAQ":
@@ -148,35 +163,36 @@ class MainWindow(qtw.QWidget):
 
             # Show the HTML5 stock chart
             chart = """ <!-- TradingView Widget BEGIN -->
-<div class="tradingview-widget-container">
-  <div id="tradingview_b8937"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-  <script type="text/javascript">
-  new TradingView.widget(
-  {
-  "autosize": true,
-  "symbol": "%s:%s",
-  "interval": "D",
-  "timezone": "Etc/UTC",
-  "theme": "light",
-  "style": "3",
-  "locale": "en",
-  "toolbar_bg": "#f1f3f6",
-  "enable_publishing": false,
-  "hide_top_toolbar": true,
-  "hide_legend": true,
-  "save_image": false,
-  "container_id": "tradingview_b8937"
-}
-  );
-  </script>
-</div>
-<!-- TradingView Widget END --> """ % (chartExchange, tickercode) # Put exchange and tickercode into html script to change the chart
+    <div class="tradingview-widget-container">
+    <div id="tradingview_b8937"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+    new TradingView.widget(
+    {
+    "autosize": true,
+    "symbol": "%s:%s",
+    "interval": "D",
+    "timezone": "Etc/UTC",
+    "theme": "light",
+    "style": "3",
+    "locale": "en",
+    "toolbar_bg": "#f1f3f6",
+    "enable_publishing": false,
+    "hide_top_toolbar": true,
+    "hide_legend": true,
+    "save_image": false,
+    "container_id": "tradingview_b8937"
+    }
+    );
+    </script>
+    </div>
+    <!-- TradingView Widget END --> """ % (chartExchange, tickercode) # Put exchange and tickercode into html script to change the chart
 
             self.analysis.webwidget.setHtml(chart)
 
             # Show analysis window
             self.analysisQTwindow.show()
+            self.analysisQTwindow.setFocus()
 
         except:
             # Bring up dialouge box to display error.
@@ -187,6 +203,7 @@ class MainWindow(qtw.QWidget):
             dlg.setStandardButtons(QMessageBox.Ok)
             dlg.setIcon(QMessageBox.Warning)
             button = dlg.exec()
+
 
     def on_helpBTNclick(self, s):
         # Makes a message box describing how to use the application and its purpose.
@@ -231,6 +248,7 @@ class MainWindow(qtw.QWidget):
         if passs == True:
             self.close()
             self.searchQTwindow.show()
+            self.search.tickerLineEdit.setFocus()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -249,7 +267,7 @@ class MainWindow(qtw.QWidget):
         self.analysis.setupUi(self.analysisQTwindow)
         self.loading.setupUi(self)
 
-        # Put alphavue logo in loading screen
+        # Put Alphavue logo in loading screen
         logo = QPixmap("alphavuelogo.PNG")
         self.loading.logoLabel.setPixmap(logo)
 

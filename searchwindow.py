@@ -87,7 +87,7 @@ class searchWindow(object):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "AlphaVue"))
-        self.label_2.setText(_translate("Form", "US Stock Analysis v1.0"))
+        self.label_2.setText(_translate("Form", "US Stock Analysis v2.0"))
         self.label_3.setText(_translate("Form", "by Hamish Anderson | Computer Science 2021"))
         self.searchButton.setText(_translate("Form", "Search"))
         self.helpButton.setText(_translate("Form", "Help"))
