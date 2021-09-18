@@ -1,7 +1,8 @@
 #
 # =========================================
 # AlphaVue
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QRect
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 version = "2.0"
 # US stock analysis program
@@ -79,10 +80,9 @@ class MainWindow(qtw.QWidget):
                 print("error bal")
 
             try:
-                company_data = c.company(tickercode)
+                company_data = c.company(tickercode) # Throws errors if you have the [0] as this for some reason it already filters it out
             except:
                 print("error data")
-            # Throws errors if you have the [0] as this for some reason already filters it out
 
             # Insert company logo
             try:
@@ -96,11 +96,11 @@ class MainWindow(qtw.QWidget):
 
             # Change labels of general information group type
             self.analysis.tickercodeLabel.setText(tickercode)
-            self.analysis.descriptionText.setText(company_data["description"])
+            self.analysis.textBrowser.setText(company_data["description"])
             self.analysis.nameLabel.setText(company_data["companyName"])
             self.analysis.exchangeLabel.setText(company_data["exchange"])
             self.analysis.countryLabel.setText(company_data["country"])
-            self.analysis.currencyLabel.setText("USD")
+            self.analysis.currencyLabel.setText(company_data["sector"])
             self.analysis.industryLabel.setText(company_data["industry"])
             self.analysis.ceoLabel.setText(company_data["CEO"])
             self.analysis.employeesLabel.setText(str(company_data["employees"]))
@@ -188,12 +188,45 @@ class MainWindow(qtw.QWidget):
     </div>
     <!-- TradingView Widget END --> """ % (chartExchange, tickercode) # Put exchange and tickercode into html script to change the chart
 
+            chart2 = """<!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget(
+      {
+      "autosize": true,
+      "symbol": "%s:%s",
+      "interval": "D",
+      "timezone": "exchange",
+      "theme": "light",
+      "style": "3",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "hide_top_toolbar": false,
+      "hide_side_toolbar": true,
+      "save_image": false,
+      "container_id": "tradingview_2d16e"
+    }
+      );
+      </script>
+    </div>
+    <!-- TradingView Widget END -->""" % (chartExchange, tickercode)
+
+            self.analysis.webwidget = QWebEngineView(self.analysis.chartgrroup)
+            self.analysis.webwidget.setObjectName(u"webwidget")
+            self.analysis.webwidget.setGeometry(QRect(10, 20, 541, 571))
+
+            self.analysis.widget = QWebEngineView(self.analysis.widget)
+            self.analysis.widget.setGeometry(QRect(0, 0, 1651, 831))
+            #self.analysis.webwidget.setObjectName(u"widget")
+
             self.analysis.webwidget.setHtml(chart)
+            self.analysis.widget.setHtml(chart2)
 
             # Show analysis window
             self.analysisQTwindow.show()
             self.analysisQTwindow.setFocus()
-
         except:
             # Bring up dialouge box to display error.
             dlg = QMessageBox(self)
@@ -203,6 +236,8 @@ class MainWindow(qtw.QWidget):
             dlg.setStandardButtons(QMessageBox.Ok)
             dlg.setIcon(QMessageBox.Warning)
             button = dlg.exec()
+
+
 
 
     def on_helpBTNclick(self, s):
