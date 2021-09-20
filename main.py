@@ -1,9 +1,6 @@
 #
 # =========================================
 # AlphaVue
-from PyQt5.QtCore import QUrl, QRect
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-
 version = "2.0"
 # US stock analysis program
 # -----------------------------------------
@@ -12,6 +9,9 @@ version = "2.0"
 #
 
 # Import packages for application to work.
+from PyQt5.QtCore import QUrl, QRect
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 import pyEX as p
 import requests
 import sys
@@ -59,51 +59,69 @@ def millify(n, precision=0, drop_nulls=True, prefixes=[]):
 
 
 
-class MainWindow(qtw.QWidget):
+class MainWindow(qtw.QWidget): # This is the main class, all windows operate in this
 
     def on_searchBTNclick(self):
-        # When the search button is clicked, retrieve data from labelEdit from API
-        c = p.Client(APIkey)
-        tickercode = self.search.tickerLineEdit.text().upper()
 
+        # When the search button is clicked, retrieve data from labelEdit from API and set c to pyEX for easy operation
+        c = p.Client(APIkey)
+        tickercode = self.search.tickerLineEdit.text().upper() # Convert to uppercase so API doesn't get confused / protect against errors.
+
+
+        # Clear data from Qlistfields so new data doesnt go on old data
+        self.analysis.newsList.clear()
+        self.analysis.insiderTransList.clear()
+
+        # Most of these are retreiving data
         try:
             try:
-                income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2)
-                income_data_cy = income_data[0]
+                income_data = c.stocks.incomeStatement(tickercode, period="annual", last=2) # Retreive income data from past 2 years
+                income_data_cy = income_data[0] # Split income data into current year and past year
                 income_data_py = income_data[1]
             except:
-                print("error income")
+                print("Error no income data available")
 
             try:
-                balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0]
-                totalShares = int(balance_data["commonStock"])
+                balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0] # Rertreive balance sheet data
+                totalShares = int(balance_data["commonStock"]) # Get the number of outstanding shares.
             except:
-                print("error bal")
+                print("Error no balance sheet data available")
 
             try:
                 company_data = c.company(tickercode) # Throws errors if you have the [0] as this for some reason it already filters it out
             except:
-                print("error data")
+                print("Error no company data available")
 
             # Insert company logo
             try:
-                cLogo_url = c.logo(tickercode)
-                cLogo = QImage()
-                cLogo.loadFromData(requests.get(cLogo_url["url"]).content)
-                self.analysis.imageLabel.setScaledContents(True)
-                self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
+                cLogo_url = c.logo(tickercode) # Get company logo url from api
+                cLogo = QImage() # Init cLogo as an QImage (PyQT5 stuff)
+                cLogo.loadFromData(requests.get(cLogo_url["url"]).content) # Load image from web link to clogo.
+                self.analysis.imageLabel.setScaledContents(True) # Make logo scale to fit
+                self.analysis.imageLabel.setPixmap(QPixmap(cLogo)) # Set the image
             except:
-                print("Error no logo")
+                print("Error no logo available")
 
             try:
-                instOwn = c.institutionalOwnership(tickercode)
+                instOwn = c.institutionalOwnership(tickercode) # Retreive institutional ownership information from API
             except:
-                print("Error no institutional ownership info.")
+                print("Error no institutional ownership info available")
 
             try:
-                fundOwn = c.fundOwnership(tickercode)
+                fundOwn = c.fundOwnership(tickercode) # Retreive institutional fund ownership information from API
             except:
-                print("Error no fund ownership info")
+                print("Error no fund ownership info available")
+
+            try:
+                insiderTransactions = c.insiderTransactions(tickercode) # Retreive insider transaction information from API.
+
+            except:
+                print("Error no insider transactions available")
+
+            try:
+                newsDF = c.news(tickercode) # Retreive news data from API.
+            except:
+                print("Error no news available")
 
             # Change labels of general information group type
             self.analysis.tickercodeLabel.setText(tickercode)
@@ -134,7 +152,7 @@ class MainWindow(qtw.QWidget):
                 self.analysis.cyNetProfitLabel.setText(millify(income_data_cy["pretaxIncome"], precision=3))
                 self.analysis.cyProfitTaxLabel.setText(millify(income_data_cy["netIncome"], precision=3))
             except:
-                print("error no income data")
+                print("Error displaying income data.")
 
             try:
                 # Past Year
@@ -150,7 +168,7 @@ class MainWindow(qtw.QWidget):
                 self.analysis.pyNetProfitLabel.setText(millify(income_data_py["pretaxIncome"], precision=3))
                 self.analysis.pyProfitTaxLabel.setText(millify(income_data_py["netIncome"], precision=3))
             except:
-                print("error no income data past year")
+                print("Error displaying previous year income data.")
 
             try:
                 # Change labels of balance sheet type
@@ -164,7 +182,7 @@ class MainWindow(qtw.QWidget):
                 self.analysis.tlLabel.setText(millify(balance_data["totalLiabilities"], precision=3))
                 self.analysis.oeLabel.setText(millify(balance_data["shareholderEquity"], precision=3))
             except:
-                print("error no balance sheet data")
+                print("Error displaying balance sheet data")
 
             try:
                 # Fill information of names of top institutional owners.
@@ -192,7 +210,7 @@ class MainWindow(qtw.QWidget):
                 self.analysis.label_72.setText(str((instOwn[9]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
 
             except:
-                print("error filling info")
+                print("Error filling institutional info")
 
             try:
                 # Fill information of fund ownership
@@ -219,12 +237,32 @@ class MainWindow(qtw.QWidget):
                 self.analysis.label_81.setText(str((fundOwn[8]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
                 self.analysis.label_82.setText(str((fundOwn[9]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
 
+            except:
+                print("Error filling institutional fund info")
+
+            try:
+                # Fill information of insider transactions in QListWidget
+                x = 0
+                netDifference = 0
+                for i in insiderTransactions: # Loop to go through all the insider transactions the API gives and add them all to the ListWidget, and add up totals
+                    self.analysis.insiderTransList.addItem(
+                        insiderTransactions[x]["fullName"] + " transacted " + millify(insiderTransactions[x]["transactionShares"],
+                                                                            precision=1) + " shares")
+                    netDifference = netDifference + insiderTransactions[x]["transactionShares"]
+
+                    x = x + 1
+                self.analysis.insiderNet.setText(millify(netDifference,precision=1))
 
             except:
-                print("error filling info")
+                print("Error printing insider summary")
 
-
-
+            x = 0
+            try:
+                for i in newsDF: # Loop through news DF and put all headlines into list
+                    self.analysis.newsList.addItem(newsDF[x]["headline"])
+                    x = x + 1
+            except:
+                print("No news data to loop")
 
             # Set the exchange setting for TradingView to get chart data from.
             if company_data["exchange"] == "NASDAQ":
@@ -232,7 +270,7 @@ class MainWindow(qtw.QWidget):
             else:
                 chartExchange = "NYSE"
 
-            # Show the HTML5 stock chart
+            # Show the HTML5 stock chart from trading view, first one is for the first tab, second one has more features and is for its own tab in the window.
             chart = """ <!-- TradingView Widget BEGIN -->
     <div class="tradingview-widget-container">
     <div id="tradingview_b8937"></div>
@@ -344,7 +382,7 @@ class MainWindow(qtw.QWidget):
         c = p.Client(APIkey)
 
         try:
-            x = c.incomeStatement("AAPL")[0]
+            x = c.incomeStatement("AAPL")[0] # Test to see if it can retereive an income statement, if not then something is wrong.
             passs = True
         except:
             print("Error no internet or API unavailable.")
@@ -387,6 +425,7 @@ class MainWindow(qtw.QWidget):
 
         self.analysis.closeButton.clicked.connect(self.on_exitBTNclickAnalysis)
         self.analysis.helpButton.clicked.connect(self.on_helpBTNpressAnalysis)
+
 
 
 if __name__ == '__main__':
