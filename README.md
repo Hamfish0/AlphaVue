@@ -1,7 +1,8 @@
 # AlphaVue
 Computer Science Major Project 2021
+- View AlphaVue actual.pdf for more information 
 
-run main.py to start
+Run main.py to start
 
 Ensure you have all the dependencies required:
 - Python 3.8 or greater
