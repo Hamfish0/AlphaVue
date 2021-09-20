@@ -76,6 +76,7 @@ class MainWindow(qtw.QWidget):
 
             try:
                 balance_data = c.stocks.balanceSheet(tickercode, period="annual")[0]
+                totalShares = int(balance_data["commonStock"])
             except:
                 print("error bal")
 
@@ -93,6 +94,16 @@ class MainWindow(qtw.QWidget):
                 self.analysis.imageLabel.setPixmap(QPixmap(cLogo))
             except:
                 print("Error no logo")
+
+            try:
+                instOwn = c.institutionalOwnership(tickercode)
+            except:
+                print("Error no institutional ownership info.")
+
+            try:
+                fundOwn = c.fundOwnership(tickercode)
+            except:
+                print("Error no fund ownership info")
 
             # Change labels of general information group type
             self.analysis.tickercodeLabel.setText(tickercode)
@@ -155,6 +166,66 @@ class MainWindow(qtw.QWidget):
             except:
                 print("error no balance sheet data")
 
+            try:
+                # Fill information of names of top institutional owners.
+                self.analysis.instit1.setText(instOwn[0]["entityProperName"])
+                self.analysis.instit2.setText(instOwn[1]["entityProperName"])
+                self.analysis.instit3.setText(instOwn[2]["entityProperName"])
+                self.analysis.instit4.setText(instOwn[3]["entityProperName"])
+                self.analysis.instit5.setText(instOwn[4]["entityProperName"])
+                self.analysis.instit6.setText(instOwn[5]["entityProperName"])
+                self.analysis.instit7.setText(instOwn[6]["entityProperName"])
+                self.analysis.instit8.setText(instOwn[7]["entityProperName"])
+                self.analysis.instit9.setText(instOwn[8]["entityProperName"])
+                self.analysis.instit10.setText(instOwn[9]["entityProperName"])
+
+                # Fill information of ownership % (forgot to change label names here)
+                self.analysis.label_63.setText(str((instOwn[0]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_64.setText(str((instOwn[1]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_65.setText(str((instOwn[2]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_66.setText(str((instOwn[3]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_67.setText(str((instOwn[4]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_68.setText(str((instOwn[5]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_69.setText(str((instOwn[6]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_70.setText(str((instOwn[7]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_71.setText(str((instOwn[8]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_72.setText(str((instOwn[9]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+
+            except:
+                print("error filling info")
+
+            try:
+                # Fill information of fund ownership
+                self.analysis.fund1.setText(fundOwn[0]["entityProperName"])
+                self.analysis.fund2.setText(fundOwn[1]["entityProperName"])
+                self.analysis.fund3.setText(fundOwn[2]["entityProperName"])
+                self.analysis.fund4.setText(fundOwn[3]["entityProperName"])
+                self.analysis.fund5.setText(fundOwn[4]["entityProperName"])
+                self.analysis.fund6.setText(fundOwn[5]["entityProperName"])
+                self.analysis.fund7.setText(fundOwn[6]["entityProperName"])
+                self.analysis.fund8.setText(fundOwn[7]["entityProperName"])
+                self.analysis.fund9.setText(fundOwn[8]["entityProperName"])
+                self.analysis.fund10.setText(fundOwn[9]["entityProperName"])
+
+                # Fill information of % ownership (forgot to change label names)
+                self.analysis.label_73.setText(str((fundOwn[0]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_74.setText(str((fundOwn[1]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_75.setText(str((fundOwn[2]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_76.setText(str((fundOwn[3]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_77.setText(str((fundOwn[4]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_78.setText(str((fundOwn[5]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_79.setText(str((fundOwn[6]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_80.setText(str((fundOwn[7]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_81.setText(str((fundOwn[8]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+                self.analysis.label_82.setText(str((fundOwn[9]["reportedHolding"] / totalShares * 100).__round__(2)) + "%")
+
+
+            except:
+                print("error filling info")
+
+
+
+
             # Set the exchange setting for TradingView to get chart data from.
             if company_data["exchange"] == "NASDAQ":
                 chartExchange = "NASDAQ"
@@ -204,7 +275,7 @@ class MainWindow(qtw.QWidget):
       "toolbar_bg": "#f1f3f6",
       "enable_publishing": false,
       "hide_top_toolbar": false,
-      "hide_side_toolbar": true,
+      "hide_side_toolbar": false,
       "save_image": false,
       "container_id": "tradingview_2d16e"
     }
@@ -236,8 +307,6 @@ class MainWindow(qtw.QWidget):
             dlg.setStandardButtons(QMessageBox.Ok)
             dlg.setIcon(QMessageBox.Warning)
             button = dlg.exec()
-
-
 
 
     def on_helpBTNclick(self, s):
