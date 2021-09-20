@@ -28,8 +28,7 @@ from searchwindow import searchWindow
 from loading import loadingWindow
 
 # API Key goes here for IEXcloud
-# APIkey = "Tsk_f518156d6fe3412596ff0e6f3263477a" # SandBox API Key
-APIkey = "sk_98a1c3f813e44a57af12019f67aa9351"
+APIkey = "IEX-Cloud secret key goes here"
 
 """ 
 function millify from https://github.com/azaitsev/millify
